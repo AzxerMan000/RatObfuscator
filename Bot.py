@@ -5,7 +5,20 @@ import random
 import io
 import re
 import os
+from flask import Flask
+import threading
 
+# ---------------- Flask keepalive ----------------
+app = Flask(__name__)
+
+@app.route('/')
+def home():
+    return "Bot is running ✅"
+
+def run_web():
+    app.run(host="0.0.0.0", port=int(os.getenv("PORT", 8080)))
+
+# ---------------- Discord bot setup ----------------
 intents = discord.Intents.default()
 bot = commands.Bot(command_prefix="!", intents=intents)
 
@@ -58,7 +71,7 @@ def obfuscate(lua_code):
 
 def deobfuscate(obf_code):
     """
-    Attempt to reverse the obfuscation by extracting Lua code
+    Reverse our obfuscation by extracting Lua code
     encoded as {number,number,...}.
     """
     pattern = re.compile(r'local s=\{([0-9,]+)\}')
@@ -75,8 +88,6 @@ async def on_ready():
     print(f"Logged in as {bot.user}!")
 
 # ---------------- Slash Commands ----------------
-
-# /obfuscate [file]
 @bot.tree.command(name="obfuscate", description="Obfuscate a Lua file")
 @app_commands.describe(file="The Lua file you want to obfuscate")
 async def obfuscate_command(interaction: discord.Interaction, file: discord.Attachment):
@@ -87,7 +98,6 @@ async def obfuscate_command(interaction: discord.Interaction, file: discord.Atta
     output_file = io.BytesIO(obf_code.encode("utf-8"))
     await interaction.followup.send(file=discord.File(output_file, filename="obfuscated.lua"))
 
-# /deobfuscate [file]
 @bot.tree.command(name="deobfuscate", description="Deobfuscate a Lua file obfuscated by this bot")
 @app_commands.describe(file="The obfuscated Lua file")
 async def deobfuscate_command(interaction: discord.Interaction, file: discord.Attachment):
@@ -101,7 +111,6 @@ async def deobfuscate_command(interaction: discord.Interaction, file: discord.At
     except Exception as e:
         await interaction.followup.send(f"Failed to deobfuscate: {e}")
 
-# /help
 @bot.tree.command(name="help", description="Show available commands")
 async def help_command(interaction: discord.Interaction):
     help_text = (
@@ -112,5 +121,7 @@ async def help_command(interaction: discord.Interaction):
     )
     await interaction.response.send_message(help_text)
 
-# ---------------- Run bot ----------------
-bot.run(os.getenv("DISCORD_TOKEN"))
+# ---------------- Run Flask + Bot ----------------
+if __name__ == "__main__":
+    threading.Thread(target=run_web).start()
+    bot.run(os.getenv("DISCORD_TOKEN"))

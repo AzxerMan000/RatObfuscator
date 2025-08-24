@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: lua-obfuscator-bot
+    env: python
+    region: singapore  # or oregon, frankfurt, etc.
+    plan: free
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "python bot.py"
+    envVars:
+      - key: DISCORD_TOKEN
+        sync: false   # you set this manually in Render dashboard
